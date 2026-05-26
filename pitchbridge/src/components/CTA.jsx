@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './CTA.css'
 
 export default function CTA() {
@@ -8,7 +9,7 @@ export default function CTA() {
         <p className="cta__subtitle">
           Join thousands of founders and investors making connections on PitchBridge
         </p>
-        <a href="#" className="cta__btn">Create Your Account</a>
+        <Link to="/signup" className="cta__btn">Create Your Account</Link>
       </div>
     </section>
   )

@@ -31,7 +31,7 @@ export default function Navbar() {
               aria-label="Search startups"
             />
           </div>
-          <a href="#signup" className="navbar__signup-btn">Sign Up</a>
+          <Link to="/signup" className="navbar__signup-btn">Sign Up</Link>
         </div>
       </div>
     </header>
