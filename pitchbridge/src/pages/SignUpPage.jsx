@@ -94,7 +94,7 @@ function FounderForm({ onChangeType }) {
     e.preventDefault()
     const e2 = validate()
     if (Object.keys(e2).length) { setErrors(e2); return }
-    setSubmitted(true)
+    navigate('/dashboard/founder')
   }
 
   if (submitted) return <SuccessScreen name={form.name} role="Founder" onHome={() => navigate('/')} />
@@ -203,7 +203,7 @@ function InvestorForm({ onChangeType }) {
     e.preventDefault()
     const e2 = validate()
     if (Object.keys(e2).length) { setErrors(e2); return }
-    setSubmitted(true)
+    navigate('/dashboard/investor')
   }
 
   if (submitted) return <SuccessScreen name={form.name} role="Investor" onHome={() => navigate('/')} />

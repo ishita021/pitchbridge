@@ -1,0 +1,173 @@
+/* Founder-specific styles — shared dashboard shell is in InvestorDashboard.css */
+/* We import the shared styles via App.css variables, so only unique pieces go here */
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.status-badge--active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge--draft {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+/* Pitch updated line */
+.pitch-row__updated {
+  font-size: 13px;
+  color: var(--color-gray);
+}
+
+/* Pitch stats row */
+.pitch-row__stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pitch-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--color-gray);
+}
+
+.pitch-stat svg {
+  width: 14px;
+  height: 14px;
+  color: #9ca3af;
+}
+
+/* Founder pitch row actions */
+.fd-actions {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-view-outline {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  color: var(--color-dark);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-view-outline:hover {
+  background: var(--color-gray-light);
+  border-color: #9ca3af;
+}
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  color: var(--color-dark);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-edit svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-edit:hover {
+  background: var(--color-gray-light);
+  border-color: #9ca3af;
+}
+
+/* Activity card */
+.activity-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 8px 28px;
+  box-shadow: var(--shadow-card);
+}
+
+.activity-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.activity-dot--active {
+  background: var(--color-dark);
+}
+
+.activity-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.activity-item__text {
+  font-size: 14px;
+  color: var(--color-dark);
+  line-height: 1.5;
+}
+
+.activity-item__time {
+  font-size: 12px;
+  color: var(--color-gray);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .fd-actions {
+    flex-direction: row !important;
+    width: 100%;
+  }
+
+  .btn-view-outline,
+  .btn-edit {
+    flex: 1;
+    justify-content: center;
+  }
+}
