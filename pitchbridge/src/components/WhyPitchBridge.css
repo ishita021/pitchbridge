@@ -1,0 +1,73 @@
+.why {
+  background: var(--color-white);
+  padding: 96px 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.why__inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.why__title {
+  font-size: clamp(26px, 4vw, 38px);
+  font-weight: 800;
+  color: var(--color-dark);
+  margin-bottom: 56px;
+}
+
+.why__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+
+.why-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.why-card__icon-wrap {
+  width: 64px;
+  height: 64px;
+  background: var(--color-icon-bg);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.why-card__icon-wrap svg {
+  width: 28px;
+  height: 28px;
+  color: var(--color-dark);
+}
+
+.why-card__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+.why-card__desc {
+  font-size: 14px;
+  color: var(--color-gray);
+  line-height: 1.65;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .why__grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .why {
+    padding: 64px 16px;
+  }
+}
