@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './TopStartups.css'
 
 const startups = [
@@ -127,7 +128,7 @@ export default function TopStartups() {
         </div>
 
         <div className="startups__footer">
-          <a href="#" className="startups__view-all">View All Startups →</a>
+          <Link to="/browse" className="startups__view-all">View All Startups →</Link>
         </div>
       </div>
     </section>

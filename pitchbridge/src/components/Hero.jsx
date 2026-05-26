@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './Hero.css'
 
 export default function Hero() {
@@ -29,9 +30,9 @@ export default function Hero() {
             <p className="role-card__desc">
               Discover promising startups and connect with innovative founders
             </p>
-            <a href="#startups" className="role-card__link">
+            <Link to="/browse" className="role-card__link">
               Browse Startups <span aria-hidden="true">→</span>
-            </a>
+            </Link>
           </div>
 
           {/* Founder card */}
@@ -47,9 +48,9 @@ export default function Hero() {
             <p className="role-card__desc">
               Present your startup to investors and secure the funding you need
             </p>
-            <a href="#pitch" className="role-card__link">
+            <Link to="/create-pitch" className="role-card__link">
               Create Your Pitch <span aria-hidden="true">→</span>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

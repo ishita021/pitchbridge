@@ -1,9 +1,9 @@
+import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
-import Hero from './components/Hero'
-import TopStartups from './components/TopStartups'
-import WhyPitchBridge from './components/WhyPitchBridge'
-import CTA from './components/CTA'
 import Footer from './components/Footer'
+import HomePage from './pages/HomePage'
+import BrowseStartupsPage from './pages/BrowseStartupsPage'
+import CreatePitchPage from './pages/CreatePitchPage'
 import './App.css'
 
 function App() {
@@ -11,10 +11,11 @@ function App() {
     <>
       <Navbar />
       <main>
-        <Hero />
-        <TopStartups />
-        <WhyPitchBridge />
-        <CTA />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/browse" element={<BrowseStartupsPage />} />
+          <Route path="/create-pitch" element={<CreatePitchPage />} />
+        </Routes>
       </main>
       <Footer />
     </>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './Navbar.css'
 
 export default function Navbar() {
@@ -5,15 +6,15 @@ export default function Navbar() {
     <header className="navbar">
       <div className="navbar__inner">
         {/* Logo */}
-        <a href="/" className="navbar__logo">
+        <Link to="/" className="navbar__logo">
           <span className="navbar__logo-icon">PB</span>
           <span className="navbar__logo-text">PitchBridge</span>
-        </a>
+        </Link>
 
         {/* Nav links */}
         <nav className="navbar__links">
-          <a href="#startups" className="navbar__link">Browse Startups</a>
-          <a href="#pitch" className="navbar__link">Create Pitch</a>
+          <Link to="/browse" className="navbar__link">Browse Startups</Link>
+          <Link to="/create-pitch" className="navbar__link">Create Pitch</Link>
         </nav>
 
         {/* Search + CTA */}
