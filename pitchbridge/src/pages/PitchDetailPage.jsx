@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { ALL_PITCHES } from '../data/startups'
 import { apiGetPitch } from '../services/api'
 import './PitchDetailPage.css'
@@ -7,6 +8,8 @@ import './PitchDetailPage.css'
 export default function PitchDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuth()
   const [pitch, setPitch] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -102,7 +105,13 @@ export default function PitchDetailPage() {
           <div className="pd__header-actions">
             <button
               className={`pd-btn-save ${saved ? 'pd-btn-save--active' : ''}`}
-              onClick={() => setSaved(p => !p)}
+              onClick={() => {
+                if (!user) {
+                  navigate('/signup', { state: { from: location.pathname } })
+                  return
+                }
+                setSaved((p) => !p)
+              }}
               aria-label={saved ? 'Unsave pitch' : 'Save pitch'}
             >
               <svg viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} aria-hidden="true">

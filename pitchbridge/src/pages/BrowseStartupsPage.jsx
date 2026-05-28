@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { ALL_PITCHES } from '../data/startups'
 import { apiGetPitches } from '../services/api'
 import './BrowseStartupsPage.css'
@@ -18,6 +19,9 @@ export default function BrowseStartupsPage() {
   const [pitches, setPitches] = useState(ALL_STARTUPS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuth()
 
   useEffect(() => {
     async function loadPitches() {
@@ -75,6 +79,10 @@ export default function BrowseStartupsPage() {
   }, [industry, stage, search, pitches])
 
   function toggleBookmark(id) {
+    if (!user) {
+      navigate('/signup', { state: { from: location.pathname } })
+      return
+    }
     setBookmarks((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
