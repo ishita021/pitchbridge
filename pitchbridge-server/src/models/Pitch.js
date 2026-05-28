@@ -78,6 +78,18 @@ const pitchSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    savedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    viewedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

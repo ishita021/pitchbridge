@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ALL_PITCHES } from '../data/startups'
-import { apiGetPitches } from '../services/api'
+import { apiGetPitches, apiGetSavedPitches, apiSavePitch } from '../services/api'
+import { getDemoSavedIds, toggleDemoSavedId } from '../utils/demoStorage'
 import './BrowseStartupsPage.css'
 
 const ALL_STARTUPS = ALL_PITCHES
@@ -16,7 +17,7 @@ export default function BrowseStartupsPage() {
   const [stage, setStage] = useState('All Stages')
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [bookmarks, setBookmarks] = useState({})
-  const [pitches, setPitches] = useState(ALL_STARTUPS)
+  const [pitches, setPitches] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -25,18 +26,27 @@ export default function BrowseStartupsPage() {
 
   useEffect(() => {
     async function loadPitches() {
+      const demoPitches = ALL_STARTUPS.map((startup) => ({
+        ...startup,
+        id: String(startup.id),
+        isDemo: true,
+      }))
+
       try {
         const data = await apiGetPitches()
-        const merged = [
-          ...ALL_STARTUPS,
-          ...data.filter((pitch) => !ALL_STARTUPS.some((startup) => startup.id === pitch._id || startup.id === pitch.id)),
-        ].map((pitch) => ({
+        const backendPitches = data.map((pitch) => ({
           ...pitch,
-          id: pitch._id || pitch.id,
+          id: pitch._id,
+          isDemo: false,
         }))
-        setPitches(merged)
+
+        setPitches([
+          ...demoPitches,
+          ...backendPitches,
+        ])
       } catch (err) {
         setError(err.message || 'Unable to load startup pitches.')
+        setPitches(demoPitches)
       } finally {
         setLoading(false)
       }
@@ -44,6 +54,33 @@ export default function BrowseStartupsPage() {
 
     loadPitches()
   }, [])
+
+  useEffect(() => {
+    async function loadSavedBookmarks() {
+      if (!user) {
+        setBookmarks({})
+        return
+      }
+
+      try {
+        const savedPitches = await apiGetSavedPitches()
+        const savedMap = savedPitches.reduce((acc, pitch) => {
+          if (pitch._id) acc[pitch._id] = true
+          return acc
+        }, {})
+
+        getDemoSavedIds().forEach((savedId) => {
+          if (savedId) savedMap[String(savedId)] = true
+        })
+
+        setBookmarks(savedMap)
+      } catch (err) {
+        console.error('Unable to load saved bookmarks:', err)
+      }
+    }
+
+    loadSavedBookmarks()
+  }, [user])
 
   // Sync search state when URL ?q= param changes (e.g. navbar search)
   useEffect(() => {
@@ -83,7 +120,21 @@ export default function BrowseStartupsPage() {
       navigate('/signup', { state: { from: location.pathname } })
       return
     }
-    setBookmarks((prev) => ({ ...prev, [id]: !prev[id] }))
+
+    const normalizedId = String(id)
+    const isDemo = normalizedId.length !== 24
+
+    if (isDemo) {
+      const saved = toggleDemoSavedId(normalizedId)
+      setBookmarks((prev) => ({ ...prev, [normalizedId]: saved }))
+      return
+    }
+
+    setBookmarks((prev) => ({ ...prev, [normalizedId]: !prev[normalizedId] }))
+    apiSavePitch(normalizedId).catch((err) => {
+      console.error('Failed to save pitch:', err)
+      setBookmarks((prev) => ({ ...prev, [normalizedId]: !prev[normalizedId] }))
+    })
   }
 
   return (

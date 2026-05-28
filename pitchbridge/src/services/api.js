@@ -131,3 +131,23 @@ export async function apiGetMyPitches() {
   const data = await request('/pitches/me', { auth: true })
   return data.data.pitches
 }
+
+export async function apiSavePitch(id) {
+  const data = await request(`/pitches/${id}/save`, { method: 'POST', auth: true })
+  return data.data
+}
+
+export async function apiRecordView(id) {
+  const data = await request(`/pitches/${id}/view`, { method: 'POST', auth: true })
+  return data.data.pitch
+}
+
+export async function apiGetSavedPitches() {
+  const data = await request('/pitches/saved', { auth: true })
+  return data.data.pitches
+}
+
+export async function apiGetViewedPitches() {
+  const data = await request('/pitches/viewed', { auth: true })
+  return data.data.pitches
+}

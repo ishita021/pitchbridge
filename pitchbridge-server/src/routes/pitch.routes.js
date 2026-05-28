@@ -3,7 +3,7 @@
 const { Router } = require('express')
 const { body } = require('express-validator')
 const { protect, restrictTo } = require('../middleware/auth.middleware')
-const { createPitch, getAllPitches, getMyPitches, getPitchById } = require('../controllers/pitch.controller')
+const { createPitch, getAllPitches, getMyPitches, getPitchById, savePitch, recordView, getSavedPitches, getViewedPitches } = require('../controllers/pitch.controller')
 
 const router = Router()
 
@@ -21,6 +21,10 @@ const pitchValidation = [
 
 router.post('/', protect, restrictTo('founder'), pitchValidation, createPitch)
 router.get('/me', protect, restrictTo('founder'), getMyPitches)
+router.get('/saved', protect, getSavedPitches)
+router.get('/viewed', protect, getViewedPitches)
+router.post('/:id/save', protect, savePitch)
+router.post('/:id/view', protect, recordView)
 router.get('/:id', getPitchById)
 router.get('/', getAllPitches)
 

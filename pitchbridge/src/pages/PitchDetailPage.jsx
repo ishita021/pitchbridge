@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ALL_PITCHES } from '../data/startups'
-import { apiGetPitch } from '../services/api'
+import { apiGetPitch, apiRecordView, apiSavePitch } from '../services/api'
+import { addDemoViewedId, getDemoSavedIds, toggleDemoSavedId } from '../utils/demoStorage'
 import './PitchDetailPage.css'
 
 export default function PitchDetailPage() {
@@ -15,6 +16,7 @@ export default function PitchDetailPage() {
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [interested, setInterested] = useState(false)
+  const [isDemoPitch, setIsDemoPitch] = useState(false)
 
   useEffect(() => {
     async function loadPitch() {
@@ -23,10 +25,21 @@ export default function PitchDetailPage() {
       try {
         const data = await apiGetPitch(id)
         setPitch(data)
+        setSaved(user && data?.savedBy?.some((savedUser) => String(savedUser) === String(user._id)))
+        setIsDemoPitch(false)
+
+        if (user) {
+          await apiRecordView(id).catch(() => {})
+        }
       } catch (err) {
         const fallback = ALL_PITCHES.find((s) => s.id === Number(id))
         if (fallback) {
           setPitch(fallback)
+          setSaved(getDemoSavedIds().includes(String(fallback.id)))
+          setIsDemoPitch(true)
+          if (user) {
+            addDemoViewedId(fallback.id)
+          }
         } else {
           setError('Pitch not found')
         }
@@ -36,7 +49,7 @@ export default function PitchDetailPage() {
     }
 
     loadPitch()
-  }, [id])
+  }, [id, user])
 
   if (loading) {
     return (
@@ -105,12 +118,24 @@ export default function PitchDetailPage() {
           <div className="pd__header-actions">
             <button
               className={`pd-btn-save ${saved ? 'pd-btn-save--active' : ''}`}
-              onClick={() => {
+              onClick={async () => {
                 if (!user) {
                   navigate('/signup', { state: { from: location.pathname } })
                   return
                 }
-                setSaved((p) => !p)
+
+                if (isDemoPitch) {
+                  const savedLocal = toggleDemoSavedId(pitch.id)
+                  setSaved(savedLocal)
+                  return
+                }
+
+                try {
+                  const result = await apiSavePitch(id)
+                  setSaved(result.saved)
+                } catch (err) {
+                  console.error('Failed to save pitch:', err)
+                }
               }}
               aria-label={saved ? 'Unsave pitch' : 'Save pitch'}
             >
@@ -130,9 +155,12 @@ export default function PitchDetailPage() {
               </svg>
             </button>
           </div>
+          {isDemoPitch && (
+            <p className="pd__demo-note">This pitch is local demo data. Saving works only for backend-managed pitches.</p>
+          )}
         </div>
 
-        {/* Key metrics */}
+        {/* Key metrics */
         <div className="pd__metrics">
           <div className="pd-metric">
             <span className="pd-metric__icon">

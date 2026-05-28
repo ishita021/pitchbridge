@@ -1,38 +1,92 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { ALL_PITCHES } from '../data/startups'
+import { apiGetSavedPitches, apiGetViewedPitches, apiSavePitch } from '../services/api'
+import { getDemoSavedIds, getDemoViewedIds, toggleDemoSavedId } from '../utils/demoStorage'
 import './InvestorDashboard.css'
 
-const SAVED_PITCHES = [
-  {
-    id: 1,
-    title: 'AI-Powered Analytics Platform',
-    company: 'DataViz AI',
-    industry: 'SaaS',
-    stage: 'Series A',
-    seeking: '$2M',
-    match: 95,
-  },
-  {
-    id: 2,
-    title: 'Sustainable Food Delivery',
-    company: 'GreenEats',
-    industry: 'E-commerce',
-    stage: 'Seed',
-    seeking: '$500K',
-    match: 88,
-  },
-]
-
-const RECENTLY_VIEWED = [
-  { id: 3, title: 'Healthcare AI Assistant', company: 'MediTech', industry: 'HealthTech', stage: 'Pre-Seed' },
-  { id: 4, title: 'EdTech Learning Platform', company: 'LearnMore', industry: 'EdTech', stage: 'Seed' },
-]
-
 export default function InvestorDashboard() {
-  const [saved, setSaved] = useState(SAVED_PITCHES)
+  const { user } = useAuth()
+  const [saved, setSaved] = useState([])
+  const [viewed, setViewed] = useState([])
+  const [loadingS, setLoadingS] = useState(true)
+  const [loadingV, setLoadingV] = useState(true)
+  const [errorS, setErrorS] = useState('')
+  const [errorV, setErrorV] = useState('')
 
-  function unsave(id) {
-    setSaved(prev => prev.filter(p => p.id !== id))
+  useEffect(() => {
+    async function loadSaved() {
+      if (!user) {
+        setLoadingS(false)
+        return
+      }
+      try {
+        const data = await apiGetSavedPitches()
+        const demoSavedIds = getDemoSavedIds()
+        const demoSaved = ALL_PITCHES.filter((pitch) => demoSavedIds.includes(String(pitch.id)))
+        setSaved([...demoSaved, ...data])
+      } catch (err) {
+        setErrorS(err.message || 'Unable to load saved pitches.')
+      } finally {
+        setLoadingS(false)
+      }
+    }
+    loadSaved()
+  }, [user])
+
+  useEffect(() => {
+    async function loadViewed() {
+      if (!user) {
+        setLoadingV(false)
+        return
+      }
+      try {
+        const data = await apiGetViewedPitches()
+        const demoViewedIds = getDemoViewedIds()
+        const demoViewed = ALL_PITCHES.filter((pitch) => demoViewedIds.includes(String(pitch.id)))
+        setViewed([...demoViewed, ...data])
+      } catch (err) {
+        setErrorV(err.message || 'Unable to load viewed pitches.')
+      } finally {
+        setLoadingV(false)
+      }
+    }
+    loadViewed()
+  }, [user])
+
+  async function unsave(id) {
+    const normalizedId = String(id)
+    const previousSaved = saved
+    setSaved((prev) => prev.filter((p) => String(p._id || p.id) !== normalizedId))
+
+    const isDemo = normalizedId.length !== 24
+    if (isDemo) {
+      toggleDemoSavedId(normalizedId)
+      return
+    }
+
+    try {
+      await apiSavePitch(normalizedId)
+    } catch (err) {
+      console.error('Unable to remove saved pitch:', err)
+      setSaved(previousSaved)
+    }
+  }
+
+  if (!user) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard__inner">
+          <div className="dashboard__header">
+            <div>
+              <h1 className="dashboard__title">Investor Dashboard</h1>
+              <p className="dashboard__subtitle">Please sign up or log in to view your saved pitches.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -67,7 +121,7 @@ export default function InvestorDashboard() {
           />
           <StatCard
             label="Pitches Reviewed"
-            value={15}
+            value={viewed.length}
             icon={
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8" />
@@ -89,31 +143,33 @@ export default function InvestorDashboard() {
         {/* Saved Pitches */}
         <section className="dashboard__section">
           <h2 className="dashboard__section-title">Saved Pitches</h2>
-          {saved.length === 0 ? (
+          {loadingS && <div className="dashboard__loading">Loading saved pitches…</div>}
+          {errorS && <div className="dashboard__error">{errorS}</div>}
+          {!loadingS && saved.length === 0 ? (
             <div className="dashboard__empty">
               <p>No saved pitches yet. <Link to="/browse">Browse startups</Link> to save some.</p>
             </div>
-          ) : (
+          ) : !loadingS && (
             <div className="pitch-list">
               {saved.map(p => (
-                <div className="pitch-row" key={p.id}>
+                <div className="pitch-row" key={p._id}>
                   <div className="pitch-row__body">
                     <div className="pitch-row__top">
                       <h3 className="pitch-row__title">{p.title}</h3>
-                      <span className="match-badge">★ {p.match}% match</span>
+                      <span className="match-badge">★ {p.match ?? 88}% match</span>
                     </div>
                     <p className="pitch-row__company">{p.company}</p>
                     <div className="pitch-row__meta">
                       <span className="tag tag--sm">{p.industry}</span>
                       <span className="tag tag--sm">{p.stage}</span>
-                      <span className="pitch-row__seeking">Seeking {p.seeking}</span>
+                      <span className="pitch-row__seeking">Seeking {p.funding || 'TBA'}</span>
                     </div>
                   </div>
                   <div className="pitch-row__actions">
-                    <Link to={`/pitch/${p.id}`} className="btn-view-dark">View Pitch</Link>
+                    <Link to={`/pitch/${p._id}`} className="btn-view-dark">View Pitch</Link>
                     <button
                       className="btn-bookmark-filled"
-                      onClick={() => unsave(p.id)}
+                      onClick={() => unsave(p._id)}
                       aria-label="Remove from saved"
                       title="Remove bookmark"
                     >
@@ -131,19 +187,27 @@ export default function InvestorDashboard() {
         {/* Recently Viewed */}
         <section className="dashboard__section">
           <h2 className="dashboard__section-title">Recently Viewed</h2>
-          <div className="recent-grid">
-            {RECENTLY_VIEWED.map(p => (
-              <div className="recent-card" key={p.id}>
-                <h3 className="recent-card__title">{p.title}</h3>
-                <p className="recent-card__company">{p.company}</p>
-                <div className="recent-card__tags">
-                  <span className="tag tag--sm">{p.industry}</span>
-                  <span className="tag tag--sm">{p.stage}</span>
+          {loadingV && <div className="dashboard__loading">Loading recently viewed pitches…</div>}
+          {errorV && <div className="dashboard__error">{errorV}</div>}
+          {!loadingV && viewed.length === 0 ? (
+            <div className="dashboard__empty">
+              <p>No recently viewed pitches yet. <Link to="/browse">Browse startups</Link> to view pitches.</p>
+            </div>
+          ) : (
+            <div className="recent-grid">
+              {viewed.map((p) => (
+                <div className="recent-card" key={p._id}>
+                  <h3 className="recent-card__title">{p.title}</h3>
+                  <p className="recent-card__company">{p.company}</p>
+                  <div className="recent-card__tags">
+                    <span className="tag tag--sm">{p.industry}</span>
+                    <span className="tag tag--sm">{p.stage}</span>
+                  </div>
+                  <Link to={`/pitch/${p._id}`} className="recent-card__link">View Details →</Link>
                 </div>
-                <a href="#" className="recent-card__link">View Details →</a>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Recommended */}
