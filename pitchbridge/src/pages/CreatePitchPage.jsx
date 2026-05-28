@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { apiCreatePitch } from '../services/api'
 import './CreatePitchPage.css'
 
 const INDUSTRIES = [
@@ -30,6 +33,21 @@ export default function CreatePitchPage() {
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [createdPitchId, setCreatedPitchId] = useState(null)
+
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return null
+  }
+
+  if (!user) {
+    return <Navigate to="/signup" replace state={{ from: location.pathname }} />
+  }
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -66,10 +84,51 @@ export default function CreatePitchPage() {
     setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    setSubmitted(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setError('')
+    setSubmitting(true)
+
+    if (!user || user.role !== 'founder') {
+      setError('Please sign up or log in as a founder before creating a pitch.')
+      setSubmitting(false)
+      return
+    }
+
+    try {
+      const payload = {
+        ...form,
+        teamMembers: members.filter((m) => m.name.trim() || m.role.trim()),
+        attachments: files.map((file) => file.name),
+      }
+
+      const createdPitch = await apiCreatePitch(payload)
+      setCreatedPitchId(createdPitch._id)
+      setSubmitted(true)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (err) {
+      setError(err.message || 'Unable to save pitch. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (!loading && user && user.role !== 'founder') {
+    return (
+      <div className="create-pitch">
+        <div className="create-pitch__inner">
+          <div className="create-pitch__header">
+            <h1 className="create-pitch__title">Create Your Pitch</h1>
+            <p className="create-pitch__subtitle">Only founders can create startups pitches.</p>
+          </div>
+          <div className="pitch-form__error">Please sign up or switch to a founder account to create a pitch.</div>
+          <div className="pitch-actions">
+            <Link to="/signup" className="btn-publish">Sign Up as Founder</Link>
+            <button type="button" className="btn-draft" onClick={() => navigate('/dashboard/investor')}>Go to Dashboard</button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (submitted) {
@@ -79,7 +138,12 @@ export default function CreatePitchPage() {
           <div className="pitch-success__icon">✓</div>
           <h2>Pitch Submitted!</h2>
           <p>Your pitch for <strong>{form.company || 'your startup'}</strong> has been published. Investors can now discover and connect with you.</p>
-          <a href="/" className="pitch-success__btn">Back to Home</a>
+          <div className="pitch-success__actions">
+            <Link to={createdPitchId ? `/pitch/${createdPitchId}` : '/browse'} className="pitch-success__btn">View Pitch</Link>
+            <button type="button" className="pitch-success__btn pitch-success__btn--secondary" onClick={() => navigate('/dashboard/founder')}>
+              Go to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -96,6 +160,7 @@ export default function CreatePitchPage() {
         </div>
 
         <form className="pitch-form" onSubmit={handleSubmit} noValidate>
+          {error && <div className="pitch-form__error">{error}</div>}
 
           {/* ── Section 1: Basic Information ── */}
           <section className="pitch-section">
@@ -364,8 +429,12 @@ export default function CreatePitchPage() {
 
           {/* ── Submit buttons ── */}
           <div className="pitch-actions">
-            <button type="submit" className="btn-publish">Publish Pitch</button>
-            <button type="button" className="btn-draft">Save as Draft</button>
+            <button type="submit" className="btn-publish" disabled={submitting}>
+              {submitting ? 'Publishing…' : 'Publish Pitch'}
+            </button>
+            <button type="button" className="btn-draft" disabled={submitting}>
+              Save as Draft
+            </button>
           </div>
 
         </form>

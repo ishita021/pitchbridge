@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { apiGetMyPitches } from '../services/api'
 import './FounderDashboard.css'
 
 const INITIAL_PITCHES = [
@@ -28,13 +30,66 @@ const ACTIVITY = [
 ]
 
 export default function FounderDashboard() {
-  const [pitches, setPitches] = useState(INITIAL_PITCHES)
+  const { user } = useAuth()
+  const [pitches, setPitches] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const totalViews = pitches.reduce((s, p) => s + p.views, 0)
-  const totalInterests = pitches.reduce((s, p) => s + p.interests, 0)
+  useEffect(() => {
+    async function loadPitches() {
+      if (!user || user.role !== 'founder') {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const data = await apiGetMyPitches()
+        setPitches(data)
+      } catch (err) {
+        setError(err.message || 'Unable to load your pitches.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadPitches()
+  }, [user])
+
+  const totalViews = pitches.reduce((s, p) => s + (p.views || 0), 0)
+  const totalInterests = pitches.reduce((s, p) => s + (p.interests || 0), 0)
 
   function deletePitch(id) {
-    setPitches(prev => prev.filter(p => p.id !== id))
+    setPitches(prev => prev.filter(p => p._id !== id))
+  }
+
+  if (!user) {
+    return (
+      <div className="dashboard fd">
+        <div className="dashboard__inner">
+          <div className="dashboard__header">
+            <div>
+              <h1 className="dashboard__title">Founder Dashboard</h1>
+              <p className="dashboard__subtitle">Please sign up or log in to view your pitches.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (user.role !== 'founder') {
+    return (
+      <div className="dashboard fd">
+        <div className="dashboard__inner">
+          <div className="dashboard__header">
+            <div>
+              <h1 className="dashboard__title">Founder Dashboard</h1>
+              <p className="dashboard__subtitle">Only founders can access pitch management.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -55,6 +110,13 @@ export default function FounderDashboard() {
             Create New Pitch
           </Link>
         </div>
+
+        {loading && (
+          <div className="dashboard__loading">Loading your pitches…</div>
+        )}
+        {error && (
+          <div className="dashboard__error">{error}</div>
+        )}
 
         {/* Stat cards */}
         <div className="dashboard__stats">
@@ -98,44 +160,47 @@ export default function FounderDashboard() {
             </div>
           ) : (
             <div className="pitch-list">
-              {pitches.map(p => (
-                <div className="pitch-row fd-pitch-row" key={p.id}>
-                  <div className="pitch-row__body">
-                    <div className="pitch-row__top">
-                      <h3 className="pitch-row__title">{p.title}</h3>
-                      <span className={`status-badge status-badge--${p.status.toLowerCase()}`}>
-                        {p.status}
-                      </span>
+              {pitches.map((p) => {
+                const updatedAgo = p.updatedAt ? formatUpdatedAgo(p.updatedAt) : 'just now'
+                return (
+                  <div className="pitch-row fd-pitch-row" key={p._id}>
+                    <div className="pitch-row__body">
+                      <div className="pitch-row__top">
+                        <h3 className="pitch-row__title">{p.title}</h3>
+                        <span className={`status-badge status-badge--${(p.status || 'Active').toLowerCase()}`}>
+                          {p.status || 'Active'}
+                        </span>
+                      </div>
+                      <p className="pitch-row__updated">Last updated {updatedAgo}</p>
+                      <div className="pitch-row__stats">
+                        <span className="pitch-stat">
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8" />
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+                          </svg>
+                          {p.views || 0} views
+                        </span>
+                        <span className="pitch-stat">
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          {p.interests || 0} interests
+                        </span>
+                      </div>
                     </div>
-                    <p className="pitch-row__updated">Last updated {p.updatedAgo}</p>
-                    <div className="pitch-row__stats">
-                      <span className="pitch-stat">
+                    <div className="pitch-row__actions fd-actions">
+                      <Link to={`/pitch/${p._id}`} className="btn-view-outline">View</Link>
+                      <Link to="/create-pitch" className="btn-edit">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8" />
-                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        {p.views} views
-                      </span>
-                      <span className="pitch-stat">
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        {p.interests} interests
-                      </span>
+                        Edit
+                      </Link>
                     </div>
                   </div>
-                  <div className="pitch-row__actions fd-actions">
-                    <Link to={`/pitch/${p.id}`} className="btn-view-outline">View</Link>
-                    <Link to="/create-pitch" className="btn-edit">
-                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      Edit
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </section>
@@ -173,4 +238,13 @@ function StatCard({ label, value, icon }) {
       <span className="stat-card__value">{value}</span>
     </div>
   )
+}
+
+function formatUpdatedAgo(timestamp) {
+  const diff = Math.max(0, Date.now() - new Date(timestamp).getTime())
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  if (hours < 1) return 'just now'
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'} ago`
 }

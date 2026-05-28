@@ -1,19 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ALL_PITCHES } from '../data/startups'
+import { apiGetPitch } from '../services/api'
 import './PitchDetailPage.css'
 
 export default function PitchDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const pitch = ALL_PITCHES.find(s => s.id === Number(id))
+  const [pitch, setPitch] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [interested, setInterested] = useState(false)
 
-  if (!pitch) {
+  useEffect(() => {
+    async function loadPitch() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await apiGetPitch(id)
+        setPitch(data)
+      } catch (err) {
+        const fallback = ALL_PITCHES.find((s) => s.id === Number(id))
+        if (fallback) {
+          setPitch(fallback)
+        } else {
+          setError('Pitch not found')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadPitch()
+  }, [id])
+
+  if (loading) {
     return (
       <div className="pd-not-found">
-        <h2>Pitch not found</h2>
+        <h2>Loading pitch…</h2>
+      </div>
+    )
+  }
+
+  if (error || !pitch) {
+    return (
+      <div className="pd-not-found">
+        <h2>{error || 'Pitch not found'}</h2>
         <Link to="/browse" className="pd-back-link">← Back to Browse</Link>
       </div>
     )
@@ -22,6 +55,29 @@ export default function PitchDetailPage() {
   function handleInterest() {
     setInterested(true)
   }
+
+  const teamMembers = pitch.teamMembers?.length
+    ? pitch.teamMembers.map((member) => ({
+        ...member,
+        initials: member.name
+          .split(' ')
+          .map((part) => part[0]?.toUpperCase())
+          .join(''),
+      }))
+    : [
+        {
+          name: pitch.author?.name || 'Founder',
+          role: pitch.company || 'Founder',
+          initials: (pitch.author?.name || 'F').charAt(0).toUpperCase(),
+        },
+      ]
+
+  const pitchWebsite = pitch.website || '#'
+  const pitchEmail = pitch.author?.email || pitch.email || 'hello@pitchbridge.com'
+  const seeking = pitch.funding || 'TBA'
+  const founded = pitch.createdAt ? new Date(pitch.createdAt).getFullYear() : '2024'
+  const teamSize = pitch.teamMembers?.length || 1
+  const pitchMatch = pitch.match ?? 88
 
   return (
     <div className="pd">
@@ -40,7 +96,7 @@ export default function PitchDetailPage() {
             <div className="pd__tags">
               <span className="tag tag--sm">{pitch.industry}</span>
               <span className="tag tag--sm">{pitch.stage}</span>
-              <span className="pd__match">↗ {pitch.match}% match</span>
+              <span className="pd__match">↗ {pitchMatch}% match</span>
             </div>
           </div>
           <div className="pd__header-actions">
@@ -78,7 +134,7 @@ export default function PitchDetailPage() {
               </svg>
             </span>
             <span className="pd-metric__label">Seeking</span>
-            <span className="pd-metric__value">{pitch.seeking}</span>
+            <span className="pd-metric__value">{seeking}</span>
           </div>
           <div className="pd-metric">
             <span className="pd-metric__icon">
@@ -90,7 +146,7 @@ export default function PitchDetailPage() {
               </svg>
             </span>
             <span className="pd-metric__label">Founded</span>
-            <span className="pd-metric__value">{pitch.founded}</span>
+            <span className="pd-metric__value">{founded}</span>
           </div>
           <div className="pd-metric">
             <span className="pd-metric__icon">
@@ -102,30 +158,29 @@ export default function PitchDetailPage() {
               </svg>
             </span>
             <span className="pd-metric__label">Team Size</span>
-            <span className="pd-metric__value">{pitch.teamSize} members</span>
+            <span className="pd-metric__value">{teamSize} members</span>
           </div>
         </div>
 
         {/* Content sections */}
-        <PitchSection title="Executive Summary" content={pitch.summary} />
-        <PitchSection title="Problem" content={pitch.problem} />
-        <PitchSection title="Solution" content={pitch.solution} />
-        <PitchSection title="Market Opportunity" content={pitch.market} />
-        <PitchSection title="Business Model" content={pitch.businessModel} />
-        <PitchSection title="Traction" content={pitch.traction} />
-        <PitchSection title="Competition & Differentiation" content={pitch.competition} />
+        <PitchSection title="Executive Summary" content={pitch.summary || pitch.description || 'No summary provided.'} />
+        <PitchSection title="Problem" content={pitch.problem || 'No problem statement provided.'} />
+        <PitchSection title="Solution" content={pitch.solution || 'No solution provided.'} />
+        <PitchSection title="Market Opportunity" content={pitch.market || 'No market opportunity details.'} />
+        <PitchSection title="Business Model" content={pitch.businessModel || 'No business model details.'} />
+        <PitchSection title="Traction" content={pitch.traction || 'No traction details yet.'} />
+        <PitchSection title="Competition & Differentiation" content={pitch.competition || 'No competition details provided.'} />
 
         {/* Team */}
         <div className="pd-section">
           <h2 className="pd-section__title">Team</h2>
           <div className="pd-team">
-            {pitch.team.map((member, i) => (
+            {teamMembers.map((member, i) => (
               <div className="pd-team-member" key={i}>
                 <div className="pd-team-member__avatar">{member.initials}</div>
                 <div className="pd-team-member__info">
                   <p className="pd-team-member__name">{member.name}</p>
                   <p className="pd-team-member__role">{member.role}</p>
-                  <p className="pd-team-member__bio">{member.bio}</p>
                 </div>
               </div>
             ))}
@@ -136,20 +191,20 @@ export default function PitchDetailPage() {
         <div className="pd-section">
           <h2 className="pd-section__title">Contact Information</h2>
           <div className="pd-contact">
-            <a href={pitch.website} target="_blank" rel="noopener noreferrer" className="pd-contact__item">
+            <a href={pitchWebsite} target="_blank" rel="noopener noreferrer" className="pd-contact__item">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
                 <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
                   stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
-              {pitch.website}
+              {pitchWebsite}
             </a>
-            <a href={`mailto:${pitch.email}`} className="pd-contact__item">
+            <a href={`mailto:${pitchEmail}`} className="pd-contact__item">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
                 <path d="M2 7l10 7 10-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
-              {pitch.email}
+              {pitchEmail}
             </a>
           </div>
 

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ALL_PITCHES } from '../data/startups'
+import { apiGetPitches } from '../services/api'
 import './BrowseStartupsPage.css'
 
 const ALL_STARTUPS = ALL_PITCHES
@@ -14,6 +15,31 @@ export default function BrowseStartupsPage() {
   const [stage, setStage] = useState('All Stages')
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [bookmarks, setBookmarks] = useState({})
+  const [pitches, setPitches] = useState(ALL_STARTUPS)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function loadPitches() {
+      try {
+        const data = await apiGetPitches()
+        const merged = [
+          ...ALL_STARTUPS,
+          ...data.filter((pitch) => !ALL_STARTUPS.some((startup) => startup.id === pitch._id || startup.id === pitch.id)),
+        ].map((pitch) => ({
+          ...pitch,
+          id: pitch._id || pitch.id,
+        }))
+        setPitches(merged)
+      } catch (err) {
+        setError(err.message || 'Unable to load startup pitches.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadPitches()
+  }, [])
 
   // Sync search state when URL ?q= param changes (e.g. navbar search)
   useEffect(() => {
@@ -33,20 +59,20 @@ export default function BrowseStartupsPage() {
   }
 
   const filtered = useMemo(() => {
-    return ALL_STARTUPS.filter((s) => {
+    return pitches.filter((s) => {
       const matchIndustry = industry === 'All Industries' || s.industry === industry
       const matchStage = stage === 'All Stages' || s.stage === stage
       const q = search.toLowerCase().trim()
       const matchSearch =
         q === '' ||
-        s.title.toLowerCase().includes(q) ||
-        s.company.toLowerCase().includes(q) ||
-        s.industry.toLowerCase().includes(q) ||
-        s.stage.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q)
+        (s.title || '').toLowerCase().includes(q) ||
+        (s.company || '').toLowerCase().includes(q) ||
+        (s.industry || '').toLowerCase().includes(q) ||
+        (s.stage || '').toLowerCase().includes(q) ||
+        (s.summary || s.description || '').toLowerCase().includes(q)
       return matchIndustry && matchStage && matchSearch
     })
-  }, [industry, stage, search])
+  }, [industry, stage, search, pitches])
 
   function toggleBookmark(id) {
     setBookmarks((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -60,6 +86,13 @@ export default function BrowseStartupsPage() {
           <h1 className="browse__title">Browse Startups</h1>
           <p className="browse__subtitle">Discover innovative startups looking for investment</p>
         </div>
+
+        {loading && (
+          <div className="browse__loading">Loading pitches…</div>
+        )}
+        {error && (
+          <div className="browse__error">{error}</div>
+        )}
 
         {/* Filters */}
         <div className="browse__filters">
@@ -142,44 +175,47 @@ export default function BrowseStartupsPage() {
               <p>No startups match your filters. Try adjusting your search.</p>
             </div>
           ) : (
-            filtered.map((s) => (
-              <article className="startup-item" key={s.id}>
-                <div className="startup-item__body">
-                  <div className="startup-item__top">
-                    <h2 className="startup-item__title">{s.title}</h2>
-                    <span className="startup-item__match">
-                      ★ {s.match}% match
-                    </span>
+            filtered.map((s) => {
+              const pitchId = s._id || s.id
+              return (
+                <article className="startup-item" key={pitchId}>
+                  <div className="startup-item__body">
+                    <div className="startup-item__top">
+                      <h2 className="startup-item__title">{s.title}</h2>
+                      <span className="startup-item__match">
+                        ★ {s.match ?? 88}% match
+                      </span>
+                    </div>
+                    <p className="startup-item__company">{s.company}</p>
+                    <p className="startup-item__desc">{s.summary || s.description || 'No description available yet.'}</p>
+                    <div className="startup-item__tags">
+                      <span className="tag tag--industry">{s.industry}</span>
+                      <span className="tag tag--stage">{s.stage}</span>
+                    </div>
+                    <div className="startup-item__meta">
+                      <span>Seeking {s.funding || 'TBA'}</span>
+                      <span className="meta-dot">•</span>
+                      <span>Founded {s.createdAt ? new Date(s.createdAt).getFullYear() : '2024'}</span>
+                      <span className="meta-dot">•</span>
+                      <span>{(s.teamMembers?.length || 1)} employees</span>
+                    </div>
                   </div>
-                  <p className="startup-item__company">{s.company}</p>
-                  <p className="startup-item__desc">{s.description}</p>
-                  <div className="startup-item__tags">
-                    <span className="tag tag--industry">{s.industry}</span>
-                    <span className="tag tag--stage">{s.stage}</span>
+                  <div className="startup-item__actions">
+                    <Link to={`/pitch/${pitchId}`} className="btn-view-pitch">View Pitch</Link>
+                    <button
+                      className={`btn-bookmark ${bookmarks[pitchId] ? 'btn-bookmark--active' : ''}`}
+                      onClick={() => toggleBookmark(pitchId)}
+                      aria-label={bookmarks[pitchId] ? 'Remove bookmark' : 'Bookmark startup'}
+                      title={bookmarks[pitchId] ? 'Bookmarked' : 'Bookmark'}
+                    >
+                      <svg viewBox="0 0 24 24" fill={bookmarks[pitchId] ? 'currentColor' : 'none'} aria-hidden="true">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
                   </div>
-                  <div className="startup-item__meta">
-                    <span>Seeking {s.seeking}</span>
-                    <span className="meta-dot">•</span>
-                    <span>Founded {s.founded}</span>
-                    <span className="meta-dot">•</span>
-                    <span>{s.employees} employees</span>
-                  </div>
-                </div>
-                <div className="startup-item__actions">
-                  <Link to={`/pitch/${s.id}`} className="btn-view-pitch">View Pitch</Link>
-                  <button
-                    className={`btn-bookmark ${bookmarks[s.id] ? 'btn-bookmark--active' : ''}`}
-                    onClick={() => toggleBookmark(s.id)}
-                    aria-label={bookmarks[s.id] ? 'Remove bookmark' : 'Bookmark startup'}
-                    title={bookmarks[s.id] ? 'Bookmarked' : 'Bookmark'}
-                  >
-                    <svg viewBox="0 0 24 24" fill={bookmarks[s.id] ? 'currentColor' : 'none'} aria-hidden="true">
-                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                </div>
-              </article>
-            ))
+                </article>
+              )
+            })
           )}
         </div>
       </div>

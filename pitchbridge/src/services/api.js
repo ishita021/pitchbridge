@@ -109,3 +109,25 @@ export async function apiRefreshToken() {
   saveTokens(data.data.accessToken, data.data.refreshToken)
   return data.data.accessToken
 }
+
+// ── Pitch endpoints ───────────────────────────────────────────────────────────
+
+export async function apiCreatePitch(payload) {
+  const data = await request('/pitches', { method: 'POST', body: payload, auth: true })
+  return data.data.pitch
+}
+
+export async function apiGetPitches() {
+  const data = await request('/pitches')
+  return data.data.pitches
+}
+
+export async function apiGetPitch(id) {
+  const data = await request(`/pitches/${id}`)
+  return data.data.pitch
+}
+
+export async function apiGetMyPitches() {
+  const data = await request('/pitches/me', { auth: true })
+  return data.data.pitches
+}

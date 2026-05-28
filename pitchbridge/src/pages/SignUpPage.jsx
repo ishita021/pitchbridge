@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { apiSignup } from '../services/api'
 import './SignUpPage.css'
@@ -63,6 +63,7 @@ const INDUSTRIES = [
 
 function FounderForm({ onChangeType }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [form, setForm] = useState({
     name: '', email: '', company: '', industry: 'Select industry',
@@ -113,7 +114,12 @@ function FounderForm({ onChangeType }) {
         industry: form.industry,
       })
       login(user)
-      navigate('/dashboard/founder')
+      const from = location.state?.from
+      if (from === '/create-pitch') {
+        navigate(from, { replace: true })
+      } else {
+        navigate('/dashboard/founder')
+      }
     } catch (err) {
       // Map server field errors back to inline form errors
       if (err.errors?.length) {
