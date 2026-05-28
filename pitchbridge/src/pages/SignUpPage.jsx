@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { apiSignup } from '../services/api'
 import './SignUpPage.css'
 
 // ─── Role Selection Screen ────────────────────────────────────────────────────
@@ -61,6 +63,7 @@ const INDUSTRIES = [
 
 function FounderForm({ onChangeType }) {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [form, setForm] = useState({
     name: '', email: '', company: '', industry: 'Select industry',
     password: '', confirm: '',
@@ -68,12 +71,14 @@ function FounderForm({ onChangeType }) {
   const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [errors, setErrors] = useState({})
-  const [submitted, setSubmitted] = useState(false)
+  const [apiError, setApiError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   function handleChange(e) {
     const { name, value } = e.target
     setForm(p => ({ ...p, [name]: value }))
     setErrors(p => ({ ...p, [name]: '' }))
+    setApiError('')
   }
 
   function validate() {
@@ -90,14 +95,38 @@ function FounderForm({ onChangeType }) {
     return e
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     const e2 = validate()
     if (Object.keys(e2).length) { setErrors(e2); return }
-    navigate('/dashboard/founder')
-  }
 
-  if (submitted) return <SuccessScreen name={form.name} role="Founder" onHome={() => navigate('/')} />
+    setSubmitting(true)
+    setApiError('')
+
+    try {
+      const user = await apiSignup({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: 'founder',
+        company: form.company,
+        industry: form.industry,
+      })
+      login(user)
+      navigate('/dashboard/founder')
+    } catch (err) {
+      // Map server field errors back to inline form errors
+      if (err.errors?.length) {
+        const fieldErrs = {}
+        err.errors.forEach(({ field, message }) => { fieldErrs[field] = message })
+        setErrors(fieldErrs)
+      } else {
+        setApiError(err.message || 'Sign up failed. Please try again.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="signup-form-page">
@@ -107,6 +136,8 @@ function FounderForm({ onChangeType }) {
           <p className="signup-form-subtitle">Create your account to get started</p>
           <button className="signup-change-type" onClick={onChangeType}>Change account type</button>
         </div>
+
+        {apiError && <div className="sf-api-error">{apiError}</div>}
 
         <form className="signup-form" onSubmit={handleSubmit} noValidate>
           <Field label="Full Name" error={errors.name}>
@@ -154,7 +185,9 @@ function FounderForm({ onChangeType }) {
             <EyeToggle show={showConfirm} onToggle={() => setShowConfirm(p => !p)} />
           </Field>
 
-          <button type="submit" className="sf-submit">Create Account</button>
+          <button type="submit" className="sf-submit" disabled={submitting}>
+            {submitting ? 'Creating Account…' : 'Create Account'}
+          </button>
         </form>
 
         <p className="signup-form-login">Already have an account? <a href="#">Log in</a></p>
@@ -171,6 +204,7 @@ const FOCUS_AREAS = [
 
 function InvestorForm({ onChangeType }) {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [form, setForm] = useState({
     name: '', email: '', focus: 'Select focus area',
     password: '', confirm: '',
@@ -178,12 +212,14 @@ function InvestorForm({ onChangeType }) {
   const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [errors, setErrors] = useState({})
-  const [submitted, setSubmitted] = useState(false)
+  const [apiError, setApiError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   function handleChange(e) {
     const { name, value } = e.target
     setForm(p => ({ ...p, [name]: value }))
     setErrors(p => ({ ...p, [name]: '' }))
+    setApiError('')
   }
 
   function validate() {
@@ -199,14 +235,36 @@ function InvestorForm({ onChangeType }) {
     return e
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     const e2 = validate()
     if (Object.keys(e2).length) { setErrors(e2); return }
-    navigate('/dashboard/investor')
-  }
 
-  if (submitted) return <SuccessScreen name={form.name} role="Investor" onHome={() => navigate('/')} />
+    setSubmitting(true)
+    setApiError('')
+
+    try {
+      const user = await apiSignup({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: 'investor',
+        investmentFocus: form.focus,
+      })
+      login(user)
+      navigate('/dashboard/investor')
+    } catch (err) {
+      if (err.errors?.length) {
+        const fieldErrs = {}
+        err.errors.forEach(({ field, message }) => { fieldErrs[field] = message })
+        setErrors(fieldErrs)
+      } else {
+        setApiError(err.message || 'Sign up failed. Please try again.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="signup-form-page">
@@ -216,6 +274,8 @@ function InvestorForm({ onChangeType }) {
           <p className="signup-form-subtitle">Create your account to get started</p>
           <button className="signup-change-type" onClick={onChangeType}>Change account type</button>
         </div>
+
+        {apiError && <div className="sf-api-error">{apiError}</div>}
 
         <form className="signup-form" onSubmit={handleSubmit} noValidate>
           <Field label="Full Name" error={errors.name}>
@@ -256,7 +316,9 @@ function InvestorForm({ onChangeType }) {
             <EyeToggle show={showConfirm} onToggle={() => setShowConfirm(p => !p)} />
           </Field>
 
-          <button type="submit" className="sf-submit">Create Account</button>
+          <button type="submit" className="sf-submit" disabled={submitting}>
+            {submitting ? 'Creating Account…' : 'Create Account'}
+          </button>
         </form>
 
         <p className="signup-form-login">Already have an account? <a href="#">Log in</a></p>
@@ -320,19 +382,6 @@ function EyeToggle({ show, onToggle }) {
         </svg>
       )}
     </button>
-  )
-}
-
-function SuccessScreen({ name, role, onHome }) {
-  return (
-    <div className="signup-success">
-      <div className="signup-success__card">
-        <div className="signup-success__icon">✓</div>
-        <h2>Welcome to PitchBridge!</h2>
-        <p>Your <strong>{role}</strong> account for <strong>{name}</strong> has been created successfully.</p>
-        <button className="signup-success__btn" onClick={onHome}>Go to Home</button>
-      </div>
-    </div>
   )
 }
 

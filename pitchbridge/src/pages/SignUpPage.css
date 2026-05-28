@@ -411,3 +411,21 @@
     padding: 32px 16px;
   }
 }
+
+/* ── API error banner ────────────────────────────────────────────────────── */
+.sf-api-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 11px 14px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+/* ── Disabled submit button ──────────────────────────────────────────────── */
+.sf-submit:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}

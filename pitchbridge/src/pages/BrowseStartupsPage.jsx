@@ -1,139 +1,49 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ALL_PITCHES } from '../data/startups'
 import './BrowseStartupsPage.css'
 
-const ALL_STARTUPS = [
-  {
-    id: 1,
-    title: 'AI-Powered Analytics Platform',
-    company: 'DataViz AI',
-    description:
-      'Transform raw data into actionable insights with our AI-powered analytics platform. We help businesses make data-driven decisions faster.',
-    industry: 'SaaS',
-    stage: 'Series A',
-    match: 95,
-    seeking: '$2M',
-    founded: 2022,
-    employees: 12,
-    bookmarked: false,
-  },
-  {
-    id: 2,
-    title: 'Blockchain Supply Chain Solution',
-    company: 'ChainTrack',
-    description:
-      'End-to-end supply chain visibility using blockchain technology. Track products from manufacturer to consumer with complete transparency.',
-    industry: 'FinTech',
-    stage: 'Seed',
-    match: 82,
-    seeking: '$1M',
-    founded: 2023,
-    employees: 8,
-    bookmarked: false,
-  },
-  {
-    id: 3,
-    title: 'Sustainable Food Delivery',
-    company: 'GreenEats',
-    description:
-      'Zero-waste food delivery service connecting local restaurants with eco-conscious consumers. Our electric fleet reduces carbon emissions by 80%.',
-    industry: 'E-commerce',
-    stage: 'Seed',
-    match: 88,
-    seeking: '$500K',
-    founded: 2023,
-    employees: 15,
-    bookmarked: false,
-  },
-  {
-    id: 4,
-    title: 'Mental Health & Wellness App',
-    company: 'MindSpace',
-    description:
-      'Personalised mental health support through AI-driven therapy sessions, mood tracking, and guided meditation. Serving 50K+ active users.',
-    industry: 'HealthTech',
-    stage: 'Series A',
-    match: 79,
-    seeking: '$3M',
-    founded: 2021,
-    employees: 22,
-    bookmarked: false,
-  },
-  {
-    id: 5,
-    title: 'EdTech Adaptive Learning',
-    company: 'EduSpark',
-    description:
-      'Adaptive K-12 learning platform that personalises curriculum in real time using student performance data. 200+ schools onboarded.',
-    industry: 'EdTech',
-    stage: 'Seed',
-    match: 74,
-    seeking: '$800K',
-    founded: 2022,
-    employees: 10,
-    bookmarked: false,
-  },
-  {
-    id: 6,
-    title: 'Last-Mile Delivery Optimisation',
-    company: 'LogiFlow',
-    description:
-      'SaaS platform cutting last-mile delivery costs by 35% for e-commerce brands through AI-powered route optimisation and carrier selection.',
-    industry: 'Logistics',
-    stage: 'Series A',
-    match: 91,
-    seeking: '$4M',
-    founded: 2021,
-    employees: 30,
-    bookmarked: false,
-  },
-  {
-    id: 7,
-    title: 'Zero-Trust Cybersecurity Platform',
-    company: 'CyberShield',
-    description:
-      'Enterprise-grade zero-trust security protecting mid-market companies from ransomware and phishing attacks with real-time threat intelligence.',
-    industry: 'CyberSecurity',
-    stage: 'Series B',
-    match: 86,
-    seeking: '$10M',
-    founded: 2020,
-    employees: 45,
-    bookmarked: false,
-  },
-  {
-    id: 8,
-    title: 'Embedded Finance Infrastructure',
-    company: 'FinNest',
-    description:
-      'API-first platform enabling any SaaS company to embed banking, lending, and payments into their product in under two weeks.',
-    industry: 'FinTech',
-    stage: 'Series B',
-    match: 93,
-    seeking: '$15M',
-    founded: 2020,
-    employees: 60,
-    bookmarked: false,
-  },
-]
+const ALL_STARTUPS = ALL_PITCHES
 
-const INDUSTRIES = ['All Industries', 'SaaS', 'FinTech', 'HealthTech', 'EdTech', 'E-commerce', 'Logistics', 'CyberSecurity']
-const STAGES = ['All Stages', 'Seed', 'Series A', 'Series B']
+const INDUSTRIES = ['All Industries', 'SaaS', 'FinTech', 'HealthTech', 'EdTech', 'E-commerce', 'Logistics', 'CyberSecurity', 'CleanTech']
+const STAGES = ['All Stages', 'Seed', 'Pre-Seed', 'Series A', 'Series B']
 
 export default function BrowseStartupsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [industry, setIndustry] = useState('All Industries')
   const [stage, setStage] = useState('All Stages')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('q') || '')
   const [bookmarks, setBookmarks] = useState({})
+
+  // Sync search state when URL ?q= param changes (e.g. navbar search)
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    setSearch(q)
+  }, [searchParams])
+
+  // Keep URL in sync when user types in the on-page search box
+  function handleSearchChange(e) {
+    const val = e.target.value
+    setSearch(val)
+    if (val.trim()) {
+      setSearchParams({ q: val.trim() }, { replace: true })
+    } else {
+      setSearchParams({}, { replace: true })
+    }
+  }
 
   const filtered = useMemo(() => {
     return ALL_STARTUPS.filter((s) => {
       const matchIndustry = industry === 'All Industries' || s.industry === industry
       const matchStage = stage === 'All Stages' || s.stage === stage
+      const q = search.toLowerCase().trim()
       const matchSearch =
-        search === '' ||
-        s.title.toLowerCase().includes(search.toLowerCase()) ||
-        s.company.toLowerCase().includes(search.toLowerCase()) ||
-        s.description.toLowerCase().includes(search.toLowerCase())
+        q === '' ||
+        s.title.toLowerCase().includes(q) ||
+        s.company.toLowerCase().includes(q) ||
+        s.industry.toLowerCase().includes(q) ||
+        s.stage.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q)
       return matchIndustry && matchStage && matchSearch
     })
   }, [industry, stage, search])
@@ -195,12 +105,30 @@ export default function BrowseStartupsPage() {
                   placeholder="Search by name or keyword..."
                   className="filter-search-input"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={handleSearchChange}
                 />
               </div>
             </div>
           </div>
         </div>
+
+        {/* Active search banner */}
+        {search.trim() && (
+          <div className="browse__search-banner">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            Showing results for <strong>"{search.trim()}"</strong>
+            <button
+              className="browse__search-clear"
+              onClick={() => { setSearch(''); setSearchParams({}, { replace: true }) }}
+              aria-label="Clear search"
+            >
+              ✕ Clear
+            </button>
+          </div>
+        )}
 
         {/* Results count */}
         <p className="browse__count">
@@ -238,7 +166,7 @@ export default function BrowseStartupsPage() {
                   </div>
                 </div>
                 <div className="startup-item__actions">
-                  <button className="btn-view-pitch">View Pitch</button>
+                  <Link to={`/pitch/${s.id}`} className="btn-view-pitch">View Pitch</Link>
                   <button
                     className={`btn-bookmark ${bookmarks[s.id] ? 'btn-bookmark--active' : ''}`}
                     onClick={() => toggleBookmark(s.id)}

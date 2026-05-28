@@ -125,7 +125,7 @@ export default function FounderDashboard() {
                     </div>
                   </div>
                   <div className="pitch-row__actions fd-actions">
-                    <button className="btn-view-outline">View</button>
+                    <Link to={`/pitch/${p.id}`} className="btn-view-outline">View</Link>
                     <Link to="/create-pitch" className="btn-edit">
                       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

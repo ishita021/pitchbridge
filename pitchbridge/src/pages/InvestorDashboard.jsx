@@ -110,7 +110,7 @@ export default function InvestorDashboard() {
                     </div>
                   </div>
                   <div className="pitch-row__actions">
-                    <button className="btn-view-dark">View Pitch</button>
+                    <Link to={`/pitch/${p.id}`} className="btn-view-dark">View Pitch</Link>
                     <button
                       className="btn-bookmark-filled"
                       onClick={() => unsave(p.id)}
